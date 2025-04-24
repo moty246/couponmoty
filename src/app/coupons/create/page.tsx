@@ -1,0 +1,155 @@
+'use client';
+
+import {useState} from 'react';
+import {useForm} from 'react-hook-form';
+import {z} from 'zod';
+import {zodResolver} from '@hookform/resolvers/zod';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
+import {Textarea} from '@/components/ui/textarea';
+import {Calendar} from '@/components/ui/calendar';
+import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
+import {CalendarIcon} from 'lucide-react';
+import {cn} from '@/lib/utils';
+import {format} from 'date-fns';
+import {toast} from "@/hooks/use-toast";
+
+const FormSchema = z.object({
+  companyName: z.string().min(2, {
+    message: 'שם החברה חייב להיות לפחות 2 תווים.',
+  }),
+  couponCode: z.string().min(3, {
+    message: 'קוד הקופון חייב להיות לפחות 3 תווים.',
+  }),
+  initialAmount: z.number({
+    invalid_type_error: 'הסכום ההתחלתי חייב להיות מספר.',
+  }).positive({
+    message: 'הסכום ההתחלתי חייב להיות חיובי.',
+  }),
+  expiryDate: z.date({
+    required_error: 'תאריך התפוגה הוא שדה חובה.',
+  }),
+  notes: z.string().optional(),
+  category: z.string().optional(),
+  tags: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof FormSchema>;
+
+const CreateCouponPage = () => {
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const form = useForm<FormValues>({
+    resolver: zodResolver(FormSchema),
+    defaultValues: {
+      companyName: '',
+      couponCode: '',
+      initialAmount: undefined,
+      expiryDate: undefined,
+      notes: '',
+      category: '',
+      tags: '',
+    },
+  });
+
+  function onSubmit(values: FormValues) {
+    const expiryDate = date || values.expiryDate;
+    if (!expiryDate) {
+      toast({
+        title: 'תאריך התפוגה הוא שדה חובה.',
+        variant: 'destructive',
+      });
+      return;
+    }
+  
+    const finalValues = {
+      ...values,
+      expiryDate: expiryDate,
+    };
+
+     console.log('Form values:', finalValues);
+     toast({
+      title: 'הקופון נוצר בהצלחה!',
+    });
+  }
+
+  return (
+    <div className="container mx-auto py-10">
+      <h1 className="text-2xl font-bold mb-4">יצירת קופון חדש</h1>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <Label htmlFor="companyName">שם חברה</Label>
+          <Input id="companyName" type="text" {...form.register('companyName')} />
+          {form.formState.errors.companyName && (
+            <p className="text-red-500">{form.formState.errors.companyName.message}</p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="couponCode">קוד קופון</Label>
+          <Input id="couponCode" type="text" {...form.register('couponCode')} />
+          {form.formState.errors.couponCode && (
+            <p className="text-red-500">{form.formState.errors.couponCode.message}</p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="initialAmount">סכום התחלתי</Label>
+          <Input
+            id="initialAmount"
+            type="number"
+            {...form.register('initialAmount', {valueAsNumber: true})}
+          />
+          {form.formState.errors.initialAmount && (
+            <p className="text-red-500">{form.formState.errors.initialAmount.message}</p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="expiryDate">תאריך תפוגה</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={'outline'}
+                id="expiryDate"
+                className={cn(
+                  'w-[240px] justify-start text-left font-normal',
+                  !date ? 'text-muted-foreground' : undefined
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, 'dd/MM/yyyy') : <span>בחר תאריך</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start" side="bottom">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                defaultMonth={date}
+              />
+            </PopoverContent>
+          </Popover>
+          {form.formState.errors.expiryDate && (
+            <p className="text-red-500">{form.formState.errors.expiryDate.message}</p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="notes">הערות</Label>
+          <Textarea id="notes" {...form.register('notes')} />
+        </div>
+        <div>
+          <Label htmlFor="category">קטגוריה</Label>
+          <Input id="category" type="text" {...form.register('category')} />
+        </div>
+        <div>
+          <Label htmlFor="tags">תגיות</Label>
+          <Input id="tags" type="text" {...form.register('tags')} />
+        </div>
+        <div className="flex gap-2">
+          <Button type="submit">שמירה ויצירת קופון חדש</Button>
+          <Button type="button">שמירה והוספת קופון נוסף</Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default CreateCouponPage;
